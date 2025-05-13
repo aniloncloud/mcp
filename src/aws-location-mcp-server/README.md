@@ -1,8 +1,8 @@
-# AWS Location Service MCP Server
+# Amazon Location Service MCP Server
 
-Model Context Protocol (MCP) server for AWS Location Service
+Model Context Protocol (MCP) server for Amazon Location Service
 
-This MCP server provides tools to access AWS Location Service capabilities, focusing on place search and geographical coordinates.
+This MCP server provides tools to access Amazon Location Service capabilities, focusing on place search and geographical coordinates.
 
 ## Features
 
@@ -11,20 +11,20 @@ This MCP server provides tools to access AWS Location Service capabilities, focu
 - **Reverse Geocode**: Convert coordinates to addresses
 - **Search Nearby**: Search for places near a specified location
 - **Open Now Search**: Search for places that are currently open
-- **Route Calculation**: Calculate routes between locations using AWS Location Service
-- **Optimize Waypoints**: Optimize the order of waypoints for a route using AWS Location Service
+- **Route Calculation**: Calculate routes between locations using Amazon Location Service
+- **Optimize Waypoints**: Optimize the order of waypoints for a route using Amazon Location Service
 
 ## Prerequisites
 
 ### Requirements
 
-1. Have an AWS account with AWS Location Service enabled
+1. Have an AWS account with Amazon Location Service enabled
 2. Install `uv` from [Astral](https://docs.astral.sh/uv/getting-started/installation/) or the [GitHub README](https://github.com/astral-sh/uv#installation)
 3. Install Python 3.10 or newer using `uv python install 3.10` (or a more recent version)
 
 ## Installation
 
-Here are the ways you can work with the AWS Location MCP server:
+Here are the ways you can work with the Amazon Location MCP server:
 
 ## Configuration
 
@@ -38,6 +38,30 @@ Configure the server in your MCP configuration file. Here are some ways you can 
         "args": ["awslabs.aws-location-mcp-server@latest"],
         "env": {
           "AWS_PROFILE": "your-aws-profile",
+          "AWS_REGION": "us-east-1",
+          "FASTMCP_LOG_LEVEL": "ERROR"
+        },
+        "disabled": false,
+        "autoApprove": []
+    }
+  }
+}
+```
+
+### Using Temporary Credentials
+
+For temporary credentials (such as those from AWS STS, IAM roles, or federation):
+
+```json
+{
+  "mcpServers": {
+    "awslabs.aws-location-mcp-server": {
+        "command": "uvx",
+        "args": ["awslabs.aws-location-mcp-server@latest"],
+        "env": {
+          "AWS_ACCESS_KEY_ID": "your-temporary-access-key",
+          "AWS_SECRET_ACCESS_KEY": "your-temporary-secret-key",
+          "AWS_SESSION_TOKEN": "your-session-token",
           "AWS_REGION": "us-east-1",
           "FASTMCP_LOG_LEVEL": "ERROR"
         },
@@ -74,11 +98,38 @@ After building with `docker build -t awslabs/aws-location-mcp-server .`:
 }
 ```
 
+### Docker with Temporary Credentials
+
+```json
+{
+  "mcpServers": {
+    "awslabs.aws-location-mcp-server": {
+        "command": "docker",
+        "args": [
+          "run",
+          "--rm",
+          "-i",
+          "awslabs/aws-location-mcp-server"
+        ],
+        "env": {
+          "AWS_ACCESS_KEY_ID": "your-temporary-access-key",
+          "AWS_SECRET_ACCESS_KEY": "your-temporary-secret-key",
+          "AWS_SESSION_TOKEN": "your-session-token",
+          "AWS_REGION": "us-east-1"
+        },
+        "disabled": false,
+        "autoApprove": []
+    }
+  }
+}
+```
+
 ### Environment Variables
 
 - `AWS_PROFILE`: AWS CLI profile to use for credentials
 - `AWS_REGION`: AWS region to use (default: us-east-1)
 - `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`: Explicit AWS credentials (alternative to AWS_PROFILE)
+- `AWS_SESSION_TOKEN`: Session token for temporary credentials (used with AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY)
 - `FASTMCP_LOG_LEVEL`: Logging level (ERROR, WARNING, INFO, DEBUG)
 
 ## Tools
@@ -87,7 +138,7 @@ The server exposes the following tools through the MCP interface:
 
 ### search_places
 
-Search for places using AWS Location Service geocoding capabilities.
+Search for places using Amazon Location Service geocoding capabilities.
 
 ```python
 search_places(query: str, max_results: int = 5, mode: str = 'summary') -> dict
@@ -130,7 +181,7 @@ search_places_open_now(query: str, max_results: int = 5, initial_radius: int = 5
 
 ### calculate_route
 
-Calculate a route between two locations using AWS Location Service.
+Calculate a route between two locations using Amazon Location Service.
 
 ```python
 calculate_route(
@@ -159,7 +210,7 @@ get_coordinates(location: str) -> dict
 
 ### optimize_waypoints
 
-Optimize the order of waypoints using AWS Location Service geo-routes API.
+Optimize the order of waypoints using Amazon Location Service geo-routes API.
 
 ```python
 optimize_waypoints(
@@ -172,9 +223,9 @@ optimize_waypoints(
 ```
 Returns the optimized order of waypoints, total distance, and duration.
 
-## AWS Location Service Resources
+## Amazon Location Service Resources
 
-This server uses the AWS Location Service geo-places and route calculation APIs for:
+This server uses the Amazon Location Service geo-places and route calculation APIs for:
 - Geocoding (converting addresses to coordinates)
 - Reverse geocoding (converting coordinates to addresses)
 - Place search (finding places by name, category, etc.)
@@ -184,5 +235,7 @@ This server uses the AWS Location Service geo-places and route calculation APIs 
 ## Security Considerations
 
 - Use AWS profiles for credential management
-- Use IAM policies to restrict access to only the required AWS Location Service resources
-- Consider using temporary credentials or AWS IAM roles for enhanced security
+- Use IAM policies to restrict access to only the required Amazon Location Service resources
+- Use temporary credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_SESSION_TOKEN) from AWS STS for enhanced security
+- Implement AWS IAM roles with temporary credentials for applications and services
+- Regularly rotate credentials and use the shortest practical expiration time for temporary credentials
