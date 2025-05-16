@@ -541,7 +541,7 @@ async def test_secrets_manager_lifecycle(ctx, test_resource_prefix):
     logger.info(f"Updating secret value")
     patch_document = json.dumps([
         {
-            "op": "replace",
+            "op": "add",  # Use 'add' instead of 'replace' for write-only properties
             "path": "/SecretString",
             "value": json.dumps(new_secret_value)
         }
