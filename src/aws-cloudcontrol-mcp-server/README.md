@@ -234,6 +234,111 @@ list_resource_types(filters: dict = None) -> dict
 
 ## Practical Examples
 
+### AWS::SecretsManager::Secret Example
+
+Create and manage Secrets Manager secrets:
+
+```python
+# Create a Secrets Manager secret
+secret_name = "my-application-secret"
+secret_value = {"username": "admin", "password": "secure-password"}
+
+create_result = await use_mcp_tool(
+    server_name="awslabs.aws-cloudcontrol-mcp-server",
+    tool_name="create_resource",
+    arguments={
+        "type_name": "AWS::SecretsManager::Secret",
+        "desired_state": {
+            "Name": secret_name,
+            "Description": "API credentials for external service",
+            "SecretString": json.dumps(secret_value),
+            "Tags": [
+                {
+                    "Key": "Environment",
+                    "Value": "Production"
+                }
+            ]
+        },
+        "client_token": "create-secret-token"
+    }
+)
+
+# Get the request token to track the operation
+request_token = create_result['ProgressEvent']['RequestToken']
+
+# Check the operation status and get the secret ARN
+status_result = await use_mcp_tool(
+    server_name="awslabs.aws-cloudcontrol-mcp-server",
+    tool_name="get_resource_request_status",
+    arguments={"request_token": request_token}
+)
+
+# Extract the secret ARN from the status result
+secret_arn = status_result['ProgressEvent']['Identifier']
+
+# Get the secret details
+get_result = await use_mcp_tool(
+    server_name="awslabs.aws-cloudcontrol-mcp-server",
+    tool_name="get_resource",
+    arguments={
+        "type_name": "AWS::SecretsManager::Secret",
+        "identifier": secret_arn
+    }
+)
+
+# Update the secret description
+patch_document = [
+    {
+        "op": "replace",
+        "path": "/Description",
+        "value": "Updated API credentials for external service"
+    }
+]
+
+update_result = await use_mcp_tool(
+    server_name="awslabs.aws-cloudcontrol-mcp-server",
+    tool_name="update_resource",
+    arguments={
+        "type_name": "AWS::SecretsManager::Secret",
+        "identifier": secret_arn,
+        "patch_document": json.dumps(patch_document),
+        "client_token": "update-secret-token"
+    }
+)
+
+# Update the secret value
+new_secret_value = {"username": "admin", "password": "new-secure-password"}
+patch_document = [
+    {
+        "op": "replace",
+        "path": "/SecretString",
+        "value": json.dumps(new_secret_value)
+    }
+]
+
+update_result = await use_mcp_tool(
+    server_name="awslabs.aws-cloudcontrol-mcp-server",
+    tool_name="update_resource",
+    arguments={
+        "type_name": "AWS::SecretsManager::Secret",
+        "identifier": secret_arn,
+        "patch_document": json.dumps(patch_document),
+        "client_token": "update-secret-value-token"
+    }
+)
+
+# Delete the secret when no longer needed
+delete_result = await use_mcp_tool(
+    server_name="awslabs.aws-cloudcontrol-mcp-server",
+    tool_name="delete_resource",
+    arguments={
+        "type_name": "AWS::SecretsManager::Secret",
+        "identifier": secret_arn,
+        "client_token": "delete-secret-token"
+    }
+)
+```
+
 ### AWS::Logs::LogGroup Example
 
 Create and manage CloudWatch Log Groups:
