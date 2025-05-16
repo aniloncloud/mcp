@@ -586,6 +586,450 @@ async def test_idempotency_with_client_token(ctx, test_resource_prefix):
     logger.info("Idempotency test completed successfully")
 
 
+@pytest.mark.skipif(
+    not (os.environ.get('AWS_ACCESS_KEY_ID') or os.environ.get('AWS_PROFILE')),
+    reason='AWS credentials not set',
+)
+@pytest.mark.asyncio
+async def test_sns_topic_lifecycle(ctx, test_resource_prefix):
+    """Test the complete lifecycle of an AWS::SNS::Topic resource."""
+    logger.info('\n=== test_sns_topic_lifecycle ===')
+    
+    # Define resource properties
+    topic_name = f"{test_resource_prefix}-topic"
+    display_name = "Integration Test Topic"
+    
+    # Step 1: Create the SNS topic
+    logger.info(f"Creating SNS topic: {topic_name}")
+    create_result = await create_resource(
+        ctx,
+        type_name="AWS::SNS::Topic",
+        desired_state={
+            "TopicName": topic_name,
+            "DisplayName": display_name,
+            "Tags": [
+                {
+                    "Key": "Environment",
+                    "Value": "Test"
+                }
+            ]
+        },
+        client_token=f"{test_resource_prefix}-topic-create"
+    )
+    
+    if 'error' in create_result:
+        logger.error(f"Error creating SNS topic: {create_result['error']}")
+        assert False, f"Failed to create SNS topic: {create_result['error']}"
+    
+    request_token = create_result['ProgressEvent'].get('RequestToken')
+    logger.info(f"Create operation initiated with request token: {request_token}")
+    
+    # Wait for the create operation to complete
+    status_result = await wait_for_operation_completion(ctx, request_token)
+    if 'error' in status_result:
+        assert False, f"Create operation failed or timed out: {status_result['error']}"
+    
+    # Get the topic ARN from the status result
+    topic_arn = status_result['ProgressEvent'].get('Identifier')
+    logger.info(f"SNS topic created with ARN: {topic_arn}")
+    
+    # Step 2: Get the topic details
+    logger.info(f"Getting SNS topic details: {topic_arn}")
+    get_result = await get_resource(
+        ctx,
+        type_name="AWS::SNS::Topic",
+        identifier=topic_arn
+    )
+    
+    if 'error' in get_result:
+        logger.error(f"Error getting SNS topic: {get_result['error']}")
+        # Try to clean up
+        await delete_resource(ctx, type_name="AWS::SNS::Topic", identifier=topic_arn)
+        assert False, f"Failed to get SNS topic: {get_result['error']}"
+    
+    # Verify the topic properties
+    properties = get_result['ResourceDescription']['Properties']
+    logger.info(f"SNS topic properties: TopicName={properties.get('TopicName')}, DisplayName={properties.get('DisplayName')}")
+    assert properties.get('TopicName') == topic_name, "Topic name doesn't match"
+    assert properties.get('DisplayName') == display_name, "Display name doesn't match"
+    
+    # Step 3: Update the topic
+    new_display_name = "Updated Integration Test Topic"
+    logger.info(f"Updating SNS topic display name to: {new_display_name}")
+    patch_document = json.dumps([
+        {
+            "op": "replace",
+            "path": "/DisplayName",
+            "value": new_display_name
+        }
+    ])
+    
+    update_result = await update_resource(
+        ctx,
+        type_name="AWS::SNS::Topic",
+        identifier=topic_arn,
+        patch_document=patch_document,
+        client_token=f"{test_resource_prefix}-topic-update"
+    )
+    
+    if 'error' in update_result:
+        logger.error(f"Error updating SNS topic: {update_result['error']}")
+        # Try to clean up
+        await delete_resource(ctx, type_name="AWS::SNS::Topic", identifier=topic_arn)
+        assert False, f"Failed to update SNS topic: {update_result['error']}"
+    
+    request_token = update_result['ProgressEvent'].get('RequestToken')
+    logger.info(f"Update operation initiated with request token: {request_token}")
+    
+    # Wait for the update operation to complete
+    status_result = await wait_for_operation_completion(ctx, request_token)
+    if 'error' in status_result:
+        # Try to clean up
+        await delete_resource(ctx, type_name="AWS::SNS::Topic", identifier=topic_arn)
+        assert False, f"Update operation failed or timed out: {status_result['error']}"
+    
+    # Verify the update
+    get_result = await get_resource(
+        ctx,
+        type_name="AWS::SNS::Topic",
+        identifier=topic_arn
+    )
+    
+    if 'error' in get_result:
+        logger.error(f"Error getting updated SNS topic: {get_result['error']}")
+        # Try to clean up
+        await delete_resource(ctx, type_name="AWS::SNS::Topic", identifier=topic_arn)
+        assert False, f"Failed to get updated SNS topic: {get_result['error']}"
+    
+    # Verify the updated properties
+    properties = get_result['ResourceDescription']['Properties']
+    logger.info(f"Updated SNS topic properties: DisplayName={properties.get('DisplayName')}")
+    assert properties.get('DisplayName') == new_display_name, "Updated display name doesn't match"
+    
+    # Step 4: Delete the topic
+    logger.info(f"Deleting SNS topic: {topic_arn}")
+    delete_result = await delete_resource(
+        ctx,
+        type_name="AWS::SNS::Topic",
+        identifier=topic_arn,
+        client_token=f"{test_resource_prefix}-topic-delete"
+    )
+    
+    if 'error' in delete_result:
+        logger.error(f"Error deleting SNS topic: {delete_result['error']}")
+        assert False, f"Failed to delete SNS topic: {delete_result['error']}"
+    
+    request_token = delete_result['ProgressEvent'].get('RequestToken')
+    logger.info(f"Delete operation initiated with request token: {request_token}")
+    
+    # Wait for the delete operation to complete
+    status_result = await wait_for_operation_completion(ctx, request_token)
+    if 'error' in status_result:
+        assert False, f"Delete operation failed or timed out: {status_result['error']}"
+    
+    logger.info("SNS topic lifecycle test completed successfully")
+
+
+@pytest.mark.skipif(
+    not (os.environ.get('AWS_ACCESS_KEY_ID') or os.environ.get('AWS_PROFILE')),
+    reason='AWS credentials not set',
+)
+@pytest.mark.asyncio
+async def test_s3_bucket_lifecycle(ctx, test_resource_prefix):
+    """Test the complete lifecycle of an AWS::S3::Bucket resource."""
+    logger.info('\n=== test_s3_bucket_lifecycle ===')
+    
+    # Define resource properties
+    bucket_name = f"{test_resource_prefix.lower()}-bucket"
+    
+    # Step 1: Create the S3 bucket
+    logger.info(f"Creating S3 bucket: {bucket_name}")
+    create_result = await create_resource(
+        ctx,
+        type_name="AWS::S3::Bucket",
+        desired_state={
+            "BucketName": bucket_name,
+            "PublicAccessBlockConfiguration": {
+                "BlockPublicAcls": True,
+                "BlockPublicPolicy": True,
+                "IgnorePublicAcls": True,
+                "RestrictPublicBuckets": True
+            },
+            "Tags": [
+                {
+                    "Key": "Environment",
+                    "Value": "Test"
+                }
+            ]
+        },
+        client_token=f"{test_resource_prefix}-bucket-create"
+    )
+    
+    if 'error' in create_result:
+        logger.error(f"Error creating S3 bucket: {create_result['error']}")
+        assert False, f"Failed to create S3 bucket: {create_result['error']}"
+    
+    request_token = create_result['ProgressEvent'].get('RequestToken')
+    logger.info(f"Create operation initiated with request token: {request_token}")
+    
+    # Wait for the create operation to complete
+    status_result = await wait_for_operation_completion(ctx, request_token)
+    if 'error' in status_result:
+        assert False, f"Create operation failed or timed out: {status_result['error']}"
+    
+    # Step 2: Get the bucket details
+    logger.info(f"Getting S3 bucket details: {bucket_name}")
+    get_result = await get_resource(
+        ctx,
+        type_name="AWS::S3::Bucket",
+        identifier=bucket_name
+    )
+    
+    if 'error' in get_result:
+        logger.error(f"Error getting S3 bucket: {get_result['error']}")
+        # Try to clean up
+        await delete_resource(ctx, type_name="AWS::S3::Bucket", identifier=bucket_name)
+        assert False, f"Failed to get S3 bucket: {get_result['error']}"
+    
+    # Verify the bucket properties
+    properties = get_result['ResourceDescription']['Properties']
+    logger.info(f"S3 bucket properties: BucketName={properties.get('BucketName')}")
+    assert properties.get('BucketName') == bucket_name, "Bucket name doesn't match"
+    
+    # Step 3: Update the bucket with versioning
+    logger.info(f"Updating S3 bucket to enable versioning")
+    patch_document = json.dumps([
+        {
+            "op": "add",
+            "path": "/VersioningConfiguration",
+            "value": {
+                "Status": "Enabled"
+            }
+        }
+    ])
+    
+    update_result = await update_resource(
+        ctx,
+        type_name="AWS::S3::Bucket",
+        identifier=bucket_name,
+        patch_document=patch_document,
+        client_token=f"{test_resource_prefix}-bucket-update"
+    )
+    
+    if 'error' in update_result:
+        logger.error(f"Error updating S3 bucket: {update_result['error']}")
+        # Try to clean up
+        await delete_resource(ctx, type_name="AWS::S3::Bucket", identifier=bucket_name)
+        assert False, f"Failed to update S3 bucket: {update_result['error']}"
+    
+    request_token = update_result['ProgressEvent'].get('RequestToken')
+    logger.info(f"Update operation initiated with request token: {request_token}")
+    
+    # Wait for the update operation to complete
+    status_result = await wait_for_operation_completion(ctx, request_token)
+    if 'error' in status_result:
+        # Try to clean up
+        await delete_resource(ctx, type_name="AWS::S3::Bucket", identifier=bucket_name)
+        assert False, f"Update operation failed or timed out: {status_result['error']}"
+    
+    # Verify the update
+    get_result = await get_resource(
+        ctx,
+        type_name="AWS::S3::Bucket",
+        identifier=bucket_name
+    )
+    
+    if 'error' in get_result:
+        logger.error(f"Error getting updated S3 bucket: {get_result['error']}")
+        # Try to clean up
+        await delete_resource(ctx, type_name="AWS::S3::Bucket", identifier=bucket_name)
+        assert False, f"Failed to get updated S3 bucket: {get_result['error']}"
+    
+    # Verify the updated properties
+    properties = get_result['ResourceDescription']['Properties']
+    versioning_config = properties.get('VersioningConfiguration', {})
+    logger.info(f"Updated S3 bucket properties: VersioningConfiguration.Status={versioning_config.get('Status')}")
+    assert versioning_config.get('Status') == "Enabled", "Versioning status doesn't match"
+    
+    # Step 4: Delete the bucket
+    logger.info(f"Deleting S3 bucket: {bucket_name}")
+    delete_result = await delete_resource(
+        ctx,
+        type_name="AWS::S3::Bucket",
+        identifier=bucket_name,
+        client_token=f"{test_resource_prefix}-bucket-delete"
+    )
+    
+    if 'error' in delete_result:
+        logger.error(f"Error deleting S3 bucket: {delete_result['error']}")
+        assert False, f"Failed to delete S3 bucket: {delete_result['error']}"
+    
+    request_token = delete_result['ProgressEvent'].get('RequestToken')
+    logger.info(f"Delete operation initiated with request token: {request_token}")
+    
+    # Wait for the delete operation to complete
+    status_result = await wait_for_operation_completion(ctx, request_token)
+    if 'error' in status_result:
+        assert False, f"Delete operation failed or timed out: {status_result['error']}"
+    
+    logger.info("S3 bucket lifecycle test completed successfully")
+
+
+@pytest.mark.skipif(
+    not (os.environ.get('AWS_ACCESS_KEY_ID') or os.environ.get('AWS_PROFILE')),
+    reason='AWS credentials not set',
+)
+@pytest.mark.asyncio
+async def test_iam_role_lifecycle(ctx, test_resource_prefix):
+    """Test the complete lifecycle of an AWS::IAM::Role resource."""
+    logger.info('\n=== test_iam_role_lifecycle ===')
+    
+    # Define resource properties
+    role_name = f"{test_resource_prefix}-role"
+    
+    # Define the assume role policy document
+    assume_role_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Service": "lambda.amazonaws.com"
+                },
+                "Action": "sts:AssumeRole"
+            }
+        ]
+    }
+    
+    # Step 1: Create the IAM role
+    logger.info(f"Creating IAM role: {role_name}")
+    create_result = await create_resource(
+        ctx,
+        type_name="AWS::IAM::Role",
+        desired_state={
+            "RoleName": role_name,
+            "AssumeRolePolicyDocument": assume_role_policy,
+            "Description": "Test role created by integration tests",
+            "MaxSessionDuration": 3600,
+            "Tags": [
+                {
+                    "Key": "Environment",
+                    "Value": "Test"
+                }
+            ]
+        },
+        client_token=f"{test_resource_prefix}-role-create"
+    )
+    
+    if 'error' in create_result:
+        logger.error(f"Error creating IAM role: {create_result['error']}")
+        assert False, f"Failed to create IAM role: {create_result['error']}"
+    
+    request_token = create_result['ProgressEvent'].get('RequestToken')
+    logger.info(f"Create operation initiated with request token: {request_token}")
+    
+    # Wait for the create operation to complete
+    status_result = await wait_for_operation_completion(ctx, request_token)
+    if 'error' in status_result:
+        assert False, f"Create operation failed or timed out: {status_result['error']}"
+    
+    # Step 2: Get the role details
+    logger.info(f"Getting IAM role details: {role_name}")
+    get_result = await get_resource(
+        ctx,
+        type_name="AWS::IAM::Role",
+        identifier=role_name
+    )
+    
+    if 'error' in get_result:
+        logger.error(f"Error getting IAM role: {get_result['error']}")
+        # Try to clean up
+        await delete_resource(ctx, type_name="AWS::IAM::Role", identifier=role_name)
+        assert False, f"Failed to get IAM role: {get_result['error']}"
+    
+    # Verify the role properties
+    properties = get_result['ResourceDescription']['Properties']
+    logger.info(f"IAM role properties: RoleName={properties.get('RoleName')}, Description={properties.get('Description')}")
+    assert properties.get('RoleName') == role_name, "Role name doesn't match"
+    assert properties.get('Description') == "Test role created by integration tests", "Description doesn't match"
+    
+    # Step 3: Update the role with a new description
+    new_description = "Updated test role description"
+    logger.info(f"Updating IAM role description to: {new_description}")
+    patch_document = json.dumps([
+        {
+            "op": "replace",
+            "path": "/Description",
+            "value": new_description
+        }
+    ])
+    
+    update_result = await update_resource(
+        ctx,
+        type_name="AWS::IAM::Role",
+        identifier=role_name,
+        patch_document=patch_document,
+        client_token=f"{test_resource_prefix}-role-update"
+    )
+    
+    if 'error' in update_result:
+        logger.error(f"Error updating IAM role: {update_result['error']}")
+        # Try to clean up
+        await delete_resource(ctx, type_name="AWS::IAM::Role", identifier=role_name)
+        assert False, f"Failed to update IAM role: {update_result['error']}"
+    
+    request_token = update_result['ProgressEvent'].get('RequestToken')
+    logger.info(f"Update operation initiated with request token: {request_token}")
+    
+    # Wait for the update operation to complete
+    status_result = await wait_for_operation_completion(ctx, request_token)
+    if 'error' in status_result:
+        # Try to clean up
+        await delete_resource(ctx, type_name="AWS::IAM::Role", identifier=role_name)
+        assert False, f"Update operation failed or timed out: {status_result['error']}"
+    
+    # Verify the update
+    get_result = await get_resource(
+        ctx,
+        type_name="AWS::IAM::Role",
+        identifier=role_name
+    )
+    
+    if 'error' in get_result:
+        logger.error(f"Error getting updated IAM role: {get_result['error']}")
+        # Try to clean up
+        await delete_resource(ctx, type_name="AWS::IAM::Role", identifier=role_name)
+        assert False, f"Failed to get updated IAM role: {get_result['error']}"
+    
+    # Verify the updated properties
+    properties = get_result['ResourceDescription']['Properties']
+    logger.info(f"Updated IAM role properties: Description={properties.get('Description')}")
+    assert properties.get('Description') == new_description, "Updated description doesn't match"
+    
+    # Step 4: Delete the role
+    logger.info(f"Deleting IAM role: {role_name}")
+    delete_result = await delete_resource(
+        ctx,
+        type_name="AWS::IAM::Role",
+        identifier=role_name,
+        client_token=f"{test_resource_prefix}-role-delete"
+    )
+    
+    if 'error' in delete_result:
+        logger.error(f"Error deleting IAM role: {delete_result['error']}")
+        assert False, f"Failed to delete IAM role: {delete_result['error']}"
+    
+    request_token = delete_result['ProgressEvent'].get('RequestToken')
+    logger.info(f"Delete operation initiated with request token: {request_token}")
+    
+    # Wait for the delete operation to complete
+    status_result = await wait_for_operation_completion(ctx, request_token)
+    if 'error' in status_result:
+        assert False, f"Delete operation failed or timed out: {status_result['error']}"
+    
+    logger.info("IAM role lifecycle test completed successfully")
+
+
 async def main():
     """Run integration tests for AWS CloudControl MCP server."""
     if not (os.environ.get('AWS_ACCESS_KEY_ID') or os.environ.get('AWS_PROFILE')):
@@ -603,6 +1047,9 @@ async def main():
         await test_list_resource_types(ctx)
         await test_logs_loggroup_lifecycle(ctx, test_resource_prefix)
         await test_ssm_parameter_lifecycle(ctx, test_resource_prefix)
+        await test_sns_topic_lifecycle(ctx, test_resource_prefix)
+        await test_s3_bucket_lifecycle(ctx, test_resource_prefix)
+        await test_iam_role_lifecycle(ctx, test_resource_prefix)
         await test_resource_request_management(ctx, test_resource_prefix)
         await test_idempotency_with_client_token(ctx, test_resource_prefix)
         
