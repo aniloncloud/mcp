@@ -310,7 +310,7 @@ update_result = await use_mcp_tool(
 new_secret_value = {"username": "admin", "password": "new-secure-password"}
 patch_document = [
     {
-        "op": "replace",
+        "op": "add",  # Use 'add' instead of 'replace' for write-only properties
         "path": "/SecretString",
         "value": json.dumps(new_secret_value)
     }
