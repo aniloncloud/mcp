@@ -26,7 +26,14 @@ source "$VENV_DIR/bin/activate"
 # Install dependencies using pip
 echo "Installing dependencies with pip..."
 pip install --upgrade pip
-pip install -e ..
+
+# Install available dependencies manually
+echo "Installing available dependencies..."
+pip install boto3 botocore loguru pydantic pytest pytest-asyncio
+
+# Install the package in development mode without dependencies
+echo "Installing package in development mode (--no-deps)..."
+pip install -e .. --no-deps
 
 # Run the integration test script
 export PYTHONPATH="$(cd .. && pwd):$PYTHONPATH"
