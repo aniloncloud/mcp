@@ -29,9 +29,6 @@ from awslabs.aws_cloudcontrol_server.server import (
     list_resource_requests,
     list_resource_types,
 )
-from mcp.server.fastmcp import Context
-
-
 # Set up a logger instead of using print for sensitive data
 logger = logging.getLogger('integration_tests')
 logger.setLevel(logging.INFO)
@@ -42,9 +39,14 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-class DummyContext(Context):
-    """Dummy context for testing."""
-
+# Mock Context class for testing without mcp-server-fastmcp dependency
+class DummyContext:
+    """Dummy context for testing without mcp-server-fastmcp dependency."""
+    
+    def __init__(self, _request_context=None, _fastmcp=None):
+        """Initialize the dummy context."""
+        pass
+        
     async def error(self, message=None, **extra):
         """Handle error messages for DummyContext."""
         logger.error(message)
@@ -52,6 +54,18 @@ class DummyContext(Context):
     async def run_in_threadpool(self, func, *args, **kwargs):
         """Run a function in a threadpool."""
         return func(*args, **kwargs)
+        
+    async def info(self, message=None, **extra):
+        """Handle info messages for DummyContext."""
+        logger.info(message)
+        
+    async def warning(self, message=None, **extra):
+        """Handle warning messages for DummyContext."""
+        logger.warning(message)
+        
+    async def debug(self, message=None, **extra):
+        """Handle debug messages for DummyContext."""
+        logger.debug(message)
 
 
 @pytest.fixture

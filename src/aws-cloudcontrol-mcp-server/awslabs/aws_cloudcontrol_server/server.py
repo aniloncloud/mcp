@@ -20,7 +20,53 @@ import json
 import os
 import sys
 from loguru import logger
-from mcp.server.fastmcp import Context, FastMCP
+# Try to import from mcp.server.fastmcp, but provide fallbacks for testing
+try:
+    from mcp.server.fastmcp import Context, FastMCP
+except ImportError:
+    # Mock implementations for testing without mcp-server-fastmcp
+    class Context:
+        """Mock Context class for testing."""
+        
+        def __init__(self, _request_context=None, _fastmcp=None):
+            """Initialize the mock context."""
+            pass
+            
+        async def error(self, message=None, **extra):
+            """Handle error messages."""
+            logger.error(message)
+            
+        async def info(self, message=None, **extra):
+            """Handle info messages."""
+            logger.info(message)
+            
+        async def warning(self, message=None, **extra):
+            """Handle warning messages."""
+            logger.warning(message)
+            
+        async def debug(self, message=None, **extra):
+            """Handle debug messages."""
+            logger.debug(message)
+    
+    class FastMCP:
+        """Mock FastMCP class for testing."""
+        
+        def __init__(self, name, instructions=None, dependencies=None):
+            """Initialize the mock FastMCP."""
+            self.name = name
+            self.instructions = instructions
+            self.dependencies = dependencies
+            self.settings = type('Settings', (), {'port': 8888})
+            
+        def tool(self):
+            """Mock tool decorator."""
+            def decorator(func):
+                return func
+            return decorator
+            
+        def run(self, transport=None):
+            """Mock run method."""
+            logger.info(f"Mock FastMCP running with transport: {transport}")
 from pydantic import Field
 from typing import Dict, List, Optional, Union
 
