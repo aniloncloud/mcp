@@ -652,16 +652,16 @@ async def wait_for_operation_completion(request_token, timeout=300, interval=5):
             tool_name="get_resource_request_status",
             arguments={"request_token": request_token}
         )
-        
+
         operation_status = status_result['ProgressEvent'].get('OperationStatus')
-        
+
         if operation_status == 'SUCCESS':
             return status_result
         elif operation_status in ['FAILED', 'CANCELED']:
             return status_result
-            
+
         await asyncio.sleep(interval)
-        
+
     return {'error': f'Operation timed out after {timeout} seconds'}
 
 # Example usage

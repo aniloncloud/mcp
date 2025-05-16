@@ -10,8 +10,9 @@
 # and limitations under the License.
 """Pytest configuration for AWS CloudControl API MCP Server tests."""
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 
 @pytest.fixture
