@@ -1072,7 +1072,7 @@ def test_cloudcontrol_client_initialization(monkeypatch):
     monkeypatch.setenv("AWS_REGION", "us-west-2")
 
     with patch("boto3.client") as mock_boto3_client:
-        client = CloudControlClient()
+        _ = CloudControlClient()  # Create client but don't need the reference
         # Check that both clients were initialized
         assert mock_boto3_client.call_count == 2
 
@@ -1094,7 +1094,7 @@ def test_cloudcontrol_client_initialization_with_credentials(monkeypatch):
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")
 
     with patch("boto3.client") as mock_boto3_client:
-        client = CloudControlClient()
+        _ = CloudControlClient()  # Create client but don't need the reference
         # Check that both clients were initialized
         assert mock_boto3_client.call_count == 2
 
@@ -1117,7 +1117,7 @@ def test_cloudcontrol_client_initialization_with_session_token(monkeypatch):
     )
 
     with patch("boto3.client") as mock_boto3_client:
-        client = CloudControlClient()
+        _ = CloudControlClient()  # Create client but don't need the reference
         # Check that both clients were initialized
         assert mock_boto3_client.call_count == 2
 
@@ -1136,7 +1136,7 @@ def test_cloudcontrol_client_initialization_with_session_token(monkeypatch):
 def test_cloudcontrol_client_initialization_exception():
     """Test the CloudControlClient initialization when an exception occurs."""
     with patch("boto3.client", side_effect=Exception("Test exception")):
-        client = CloudControlClient()
+        client = CloudControlClient()  # Need to keep the reference for assertions
         assert client.cloudcontrol_client is None
         assert client.cloudformation_client is None
 
