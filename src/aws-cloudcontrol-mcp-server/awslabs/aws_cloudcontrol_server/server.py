@@ -181,10 +181,25 @@ async def create_resource(
         }
         
         # Add optional parameters if provided
-        if role_arn:
-            params['RoleArn'] = role_arn
-        if client_token:
-            params['ClientToken'] = client_token
+        # Handle role_arn if it's a Field object
+        actual_role_arn = None
+        if isinstance(role_arn, str):
+            actual_role_arn = role_arn
+        elif role_arn is not None and hasattr(role_arn, 'default'):
+            actual_role_arn = role_arn.default
+            
+        if actual_role_arn:
+            params['RoleArn'] = actual_role_arn
+            
+        # Handle client_token if it's a Field object
+        actual_client_token = None
+        if isinstance(client_token, str):
+            actual_client_token = client_token
+        elif client_token is not None and hasattr(client_token, 'default'):
+            actual_client_token = client_token.default
+            
+        if actual_client_token:
+            params['ClientToken'] = actual_client_token
             
         # Make the API call
         response = await asyncio.to_thread(
@@ -237,8 +252,15 @@ async def get_resource(
         }
         
         # Add optional parameters if provided
-        if role_arn:
-            params['RoleArn'] = role_arn
+        # Handle role_arn if it's a Field object
+        actual_role_arn = None
+        if isinstance(role_arn, str):
+            actual_role_arn = role_arn
+        elif role_arn is not None and hasattr(role_arn, 'default'):
+            actual_role_arn = role_arn.default
+            
+        if actual_role_arn:
+            params['RoleArn'] = actual_role_arn
             
         # Make the API call
         response = await asyncio.to_thread(
@@ -290,10 +312,25 @@ async def update_resource(
         }
         
         # Add optional parameters if provided
-        if role_arn:
-            params['RoleArn'] = role_arn
-        if client_token:
-            params['ClientToken'] = client_token
+        # Handle role_arn if it's a Field object
+        actual_role_arn = None
+        if isinstance(role_arn, str):
+            actual_role_arn = role_arn
+        elif role_arn is not None and hasattr(role_arn, 'default'):
+            actual_role_arn = role_arn.default
+            
+        if actual_role_arn:
+            params['RoleArn'] = actual_role_arn
+            
+        # Handle client_token if it's a Field object
+        actual_client_token = None
+        if isinstance(client_token, str):
+            actual_client_token = client_token
+        elif client_token is not None and hasattr(client_token, 'default'):
+            actual_client_token = client_token.default
+            
+        if actual_client_token:
+            params['ClientToken'] = actual_client_token
             
         # Make the API call
         response = await asyncio.to_thread(
@@ -347,10 +384,25 @@ async def delete_resource(
         }
         
         # Add optional parameters if provided
-        if role_arn:
-            params['RoleArn'] = role_arn
-        if client_token:
-            params['ClientToken'] = client_token
+        # Handle role_arn if it's a Field object
+        actual_role_arn = None
+        if isinstance(role_arn, str):
+            actual_role_arn = role_arn
+        elif role_arn is not None and hasattr(role_arn, 'default'):
+            actual_role_arn = role_arn.default
+            
+        if actual_role_arn:
+            params['RoleArn'] = actual_role_arn
+            
+        # Handle client_token if it's a Field object
+        actual_client_token = None
+        if isinstance(client_token, str):
+            actual_client_token = client_token
+        elif client_token is not None and hasattr(client_token, 'default'):
+            actual_client_token = client_token.default
+            
+        if actual_client_token:
+            params['ClientToken'] = actual_client_token
             
         # Make the API call
         response = await asyncio.to_thread(
@@ -403,15 +455,35 @@ async def list_resources(
         }
         
         # Add optional parameters if provided
-        if resource_model:
-            if isinstance(resource_model, dict):
-                params['ResourceModel'] = json.dumps(resource_model)
-            else:
-                params['ResourceModel'] = resource_model
-        if role_arn:
-            params['RoleArn'] = role_arn
-        if next_token:
-            params['NextToken'] = next_token
+        # Handle resource_model if it's a Field object
+        actual_resource_model = None
+        if isinstance(resource_model, dict):
+            actual_resource_model = resource_model
+        elif resource_model is not None and hasattr(resource_model, 'default'):
+            actual_resource_model = resource_model.default
+            
+        if actual_resource_model:
+            params['ResourceModel'] = json.dumps(actual_resource_model)
+            
+        # Handle role_arn if it's a Field object
+        actual_role_arn = None
+        if isinstance(role_arn, str):
+            actual_role_arn = role_arn
+        elif role_arn is not None and hasattr(role_arn, 'default'):
+            actual_role_arn = role_arn.default
+            
+        if actual_role_arn:
+            params['RoleArn'] = actual_role_arn
+            
+        # Handle next_token if it's a Field object
+        actual_next_token = None
+        if isinstance(next_token, str):
+            actual_next_token = next_token
+        elif next_token is not None and hasattr(next_token, 'default'):
+            actual_next_token = next_token.default
+            
+        if actual_next_token:
+            params['NextToken'] = actual_next_token
             
         # Make the API call
         response = await asyncio.to_thread(
@@ -556,10 +628,25 @@ async def list_resource_requests(
         params = {}
         
         # Add optional parameters if provided
-        if resource_request_status_filter:
-            params['ResourceRequestStatusFilter'] = resource_request_status_filter
-        if next_token:
-            params['NextToken'] = next_token
+        # Handle resource_request_status_filter if it's a Field object
+        actual_filter = None
+        if isinstance(resource_request_status_filter, dict):
+            actual_filter = resource_request_status_filter
+        elif resource_request_status_filter is not None and hasattr(resource_request_status_filter, 'default'):
+            actual_filter = resource_request_status_filter.default
+            
+        if actual_filter:
+            params['ResourceRequestStatusFilter'] = actual_filter
+            
+        # Handle next_token if it's a Field object
+        actual_next_token = None
+        if isinstance(next_token, str):
+            actual_next_token = next_token
+        elif next_token is not None and hasattr(next_token, 'default'):
+            actual_next_token = next_token.default
+            
+        if actual_next_token:
+            params['NextToken'] = actual_next_token
             
         # Make the API call
         response = await asyncio.to_thread(
