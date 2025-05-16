@@ -23,25 +23,10 @@ fi
 
 source "$VENV_DIR/bin/activate"
 
-# Install dependencies using uv if available, else fallback to pip
-if command -v uv &> /dev/null; then
-  echo "Installing dependencies with uv..."
-  if [ -f "../uv.lock" ]; then
-    uv pip install -r ../uv.lock || uv pip install -e ..
-  else
-    echo "uv.lock not found, installing directly from project..."
-    uv pip install -e ..
-  fi
-else
-  echo "Installing dependencies with pip..."
-  pip install --upgrade pip
-  if [ -f "../requirements.txt" ]; then
-    pip install -r ../requirements.txt || pip install -e ..
-  else
-    echo "requirements.txt not found, installing directly from project..."
-    pip install -e ..
-  fi
-fi
+# Install dependencies using pip
+echo "Installing dependencies with pip..."
+pip install --upgrade pip
+pip install -e ..
 
 # Run the integration test script
 export PYTHONPATH="$(cd .. && pwd):$PYTHONPATH"
