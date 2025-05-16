@@ -618,8 +618,16 @@ async def list_resource_types(
         params = {}
         
         # Add optional parameters if provided
-        if filters:
-            params['Filters'] = filters
+        # Check if filters is a Field object and extract its value if needed
+        actual_filters = None
+        if isinstance(filters, dict):
+            actual_filters = filters
+        elif filters is not None and hasattr(filters, 'default'):
+            # This handles the case where filters is a Field object
+            actual_filters = filters.default
+            
+        if actual_filters:
+            params['Filters'] = actual_filters
             
         # Make the API call to CloudFormation (which manages resource types)
         response = await asyncio.to_thread(
